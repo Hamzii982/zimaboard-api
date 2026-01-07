@@ -12,6 +12,7 @@ class Message extends Model
         'priority',
         'status_id',
         'creator_id',
+        'assigned_to',
         'is_announcement',
         'is_archived',
     ];
@@ -28,6 +29,11 @@ class Message extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'creator_id');
+    }
+
+    public function assignee()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 
     public function status()

@@ -20,8 +20,8 @@ class MessageController extends Controller
         $user = $request->user();
 
         $query = Message::query()
-            ->where('creator_id', $user->id)
-            ->where('is_announcement', false);
+            ->where('creator_id', $user->id);
+            // ->where('is_announcement', false);
 
         // Optional filters
         if ($request->has('is_archived')) {
@@ -56,10 +56,13 @@ class MessageController extends Controller
         $user = $request->user();
 
         $query = Message::query()
-            ->whereHas('assignees', function ($q) use ($user) {
-                $q->where('users.id', $user->id);
-            })
-            ->where('is_announcement', false);
+            ->where('assigned_to', $user->id);
+
+        // $query = Message::query()
+        //     ->whereHas('assignees', function ($q) use ($user) {
+        //         $q->where('users.id', $user->id);
+        //     })
+        //     ->where('is_announcement', false);
 
         // Optional filters
         if ($request->has('is_archived')) {
@@ -93,7 +96,20 @@ class MessageController extends Controller
         $user = $request->user();
 
         $query = Message::query()
-            ->where('is_announcement', true);
+        ->whereHas('assignees', function ($q) use ($user) {
+            $q->where('users.id', $user->id); // current user is a subscriber
+        })
+        ->where(function ($q) use ($user) {
+            $q->where('assigned_to', '<>', $user->id)
+              ->orWhereNull('assigned_to'); // include if assigned_to is null
+        })
+        ->where(function ($q) use ($user) {
+            $q->where('creator_id', '<>', $user->id)
+              ->orWhereNull('creator_id'); // include if creator_id is null
+        });
+
+        // $query = Message::query()
+        //     ->where('is_announcement', true);
 
         // Optional filters
         if ($request->has('is_archived')) {
@@ -128,6 +144,7 @@ class MessageController extends Controller
             'creator:id,name,department_id',
             'creator.department:id,name,color',
             'assignees:id,name',
+            'assignee:id,name',
             'status:id,name,color',
             'chatMessages:id,message_id,user_id,content,created_at',
             'chatMessages.user:id,name',
@@ -156,8 +173,9 @@ class MessageController extends Controller
             'description'   => 'required|string',
             'priority'      => 'required|string|in:Niedrig,Mittel,Hoch',
             'status_id'     => 'required|exists:message_statuses,id',
-            'assignees'       => 'array',
-            'assignees.*'     => 'exists:users,id',
+            'assignees'     => 'array',
+            'assignees.*'   => 'exists:users,id',
+            'assignee'      => 'nullable|exists:users,id',
             'is_announcement' => 'sometimes|boolean',
         ]);
 
@@ -169,6 +187,7 @@ class MessageController extends Controller
             'priority'        => $validated['priority'],
             'status_id'       => $validated['status_id'],
             'creator_id'      => $user->id,
+            'assigned_to'       => $validated['assignee'] ?? null,
             'department_id'   => $user->department_id,
             'is_announcement' => $validated['is_announcement'] ?? false,
         ]);
@@ -202,6 +221,7 @@ class MessageController extends Controller
             'status_id'       => 'required|exists:message_statuses,id',
             'assignees'       => 'array',
             'assignees.*'     => 'exists:users,id',
+            'assignee'          => 'nullable|exists:users,id',
             'is_announcement' => 'sometimes|boolean',
         ]);
 
@@ -229,6 +249,7 @@ class MessageController extends Controller
             'description'     => $validated['description'],
             'priority'        => $validated['priority'],
             'status_id'       => $validated['status_id'],
+            'assigned_to'       => $validated['assignee'] ?? null,
             'is_announcement' => $validated['is_announcement'] ?? false,
         ]);
 
@@ -361,6 +382,28 @@ class MessageController extends Controller
 
         return response()->json([
             'message' => 'Nachricht erfolgreich aktualisiert',
+            'data' => $message
+        ]);
+    }
+
+    public function assignToMe(Request $request, Message $message)
+    {
+        $request->validate([
+            'assigned_to' => ['nullable', 'exists:users,id'],
+        ]);
+
+        $message->assigned_to = $request->assigned_to;
+        $message->save();
+
+        // Log activity
+        $message->activities()->create([
+            'user_id' => $request->user()->id,
+            'action' => $request->user()->name . " sich selbst zugewiesen",
+            'assignee_id' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'Nachricht erfolgreich zugewiesen',
             'data' => $message
         ]);
     }

@@ -37,6 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/store-activities', [MessageController::class, 'storeActivity']);
     Route::post('/messages/{message}/assign', [MessageController::class, 'assign']);
     Route::put('/messages/{message}', [MessageController::class, 'update']);
+    Route::put('/messages/{message}/assign-to-me', [MessageController::class, 'assignToMe']);
     Route::post('/messages/{message}/comments', [MessageController::class, 'addComment']);
 
     Route::middleware('is_admin')->prefix('settings')->group(function () {

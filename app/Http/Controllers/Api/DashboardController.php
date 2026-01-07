@@ -15,17 +15,18 @@ class DashboardController extends Controller
         return response()->json([
             'assigned'      => $this->assignedToUser($user),
             'created'       => $this->createdByUser($user),
-            'announcements' => $this->announcements(),
+            'announcements' => $this->announcements($user),
         ]);
     }
 
     protected function assignedToUser($user)
     {
         $query = Message::query()
-            ->whereHas('assignees', fn ($q) =>
-                $q->where('users.id', $user->id)
-            )
-            ->where('is_announcement', false)
+            ->where('assigned_to', $user->id)
+            // ->whereHas('assignees', fn ($q) =>
+            //     $q->where('users.id', $user->id)
+            // )
+            // ->where('is_announcement', false)
             ->where('is_archived', false)
             ->with($this->messageRelations())
             ->latest();
@@ -40,7 +41,7 @@ class DashboardController extends Controller
     {
         $query = Message::query()
             ->where('creator_id', $user->id)
-            ->where('is_announcement', false)
+            // ->where('is_announcement', false)
             ->where('is_archived', false)
             ->with($this->messageRelations())
             ->latest();
@@ -51,10 +52,21 @@ class DashboardController extends Controller
         ];
     }
 
-    protected function announcements()
+    protected function announcements($user)
     {
+
         $query = Message::query()
-            ->where('is_announcement', true)
+            ->whereHas('assignees', function ($q) use ($user) {
+                $q->where('users.id', $user->id); // current user is a subscriber
+            })
+            ->where(function ($q) use ($user) {
+                $q->where('assigned_to', '<>', $user->id)
+                ->orWhereNull('assigned_to'); // include if assigned_to is null
+            })
+            ->where(function ($q) use ($user) {
+                $q->where('creator_id', '<>', $user->id)
+                ->orWhereNull('creator_id'); // include if creator_id is null
+            })
             ->where('is_archived', false)
             ->with($this->messageRelations())
             ->latest();
