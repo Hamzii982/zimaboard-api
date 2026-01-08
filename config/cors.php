@@ -1,11 +1,26 @@
 <?php
 
+$allowedOrigins = [];
+
+if (env('APP_ENV') == 'local') {
+    // Running on local dev server
+    $allowedOrigins = [
+        'http://localhost:5173',
+        'http://localhost:8081',
+    ];
+} else {
+    // Live / production
+    $allowedOrigins = [
+        'http://zimaboard.zmwl.local',
+    ];
+}
+
 return [
     'paths' => ['api/*', 'sanctum/csrf-cookie', 'broadcasting/auth'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173', 'http://localhost:8081', 'http://10.0.0.120:81'],
+    'allowed_origins' => $allowedOrigins,
 
     'allowed_origins_patterns' => [],
 
