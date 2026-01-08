@@ -26,12 +26,13 @@ class ChatCreated implements ShouldBroadcastNow
     public function broadcastOn()
     {
         $channels = [];
+        $appEnv = env('APP_ENV');
 
         if ($this->chat->message->is_announcement) {
             // Send to all users except the creator
             $users = User::where('id', '!=', $this->chat->user_id)->get();
             foreach ($users as $user) {
-                $channels[] = new PrivateChannel('user.' . $user->id);
+                $channels[] = new PrivateChannel($appEnv . '.user.' . $user->id);
             }
         } else {
             // Send to assignees + creator, but exclude current user
@@ -45,7 +46,7 @@ class ChatCreated implements ShouldBroadcastNow
             }
 
             foreach ($recipientIds as $id) {
-                $channels[] = new PrivateChannel('user.' . $id);
+                $channels[] = new PrivateChannel($appEnv . '.user.' . $id);
             }
         }
 

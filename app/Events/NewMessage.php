@@ -39,17 +39,18 @@ class NewMessage implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         $channels = [];
+        $appEnv = env('APP_ENV');
 
         if ($this->chatMessage->is_announcement) {
             // Send to all users except creator
             $users = User::where('id', '!=', $this->chatMessage->creator_id)->get();
             foreach ($users as $user) {
-                $channels[] = new PrivateChannel('user.' . $user->id);
+                $channels[] = new PrivateChannel($appEnv . '.user.' . $user->id);
             }
         } else {
             // Send only to assignees
             foreach ($this->chatMessage->assignees as $assignee) {
-                $channels[] = new PrivateChannel('user.' . $assignee->id);
+                $channels[] = new PrivateChannel($appEnv . '.user.' . $assignee->id);
             }
         }
 
