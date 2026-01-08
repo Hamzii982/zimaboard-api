@@ -39,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/messages/{message}', [MessageController::class, 'update']);
     Route::put('/messages/{message}/assign-to-me', [MessageController::class, 'assignToMe']);
     Route::post('/messages/{message}/comments', [MessageController::class, 'addComment']);
+    Route::post('/users/change-password', [AuthController::class,'changePassword']);
 
     Route::middleware('is_admin')->prefix('settings')->group(function () {
 

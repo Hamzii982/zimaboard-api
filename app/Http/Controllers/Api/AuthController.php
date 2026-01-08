@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -86,6 +87,35 @@ class AuthController extends Controller
 
         return response()->json([
             'users' => User::all(),
+        ]);
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'currentPassword' => ['required', 'string'],
+            'newPassword'     => ['required', 'string', 'min:8'],
+        ]);
+
+        $user = $request->user();
+
+        // Verify current password
+        if (!Hash::check($request->currentPassword, $user->password)) {
+            throw ValidationException::withMessages([
+                'currentPassword' => ['Aktuelles Passwort ist nicht korrekt.'],
+            ]);
+        }
+
+        // Update password
+        $user->update([
+            'password' => Hash::make($request->newPassword),
+        ]);
+
+        // OPTIONAL (recommended): revoke all other tokens
+        $user->tokens()->where('id', '!=', $request->user()->currentAccessToken()->id)->delete();
+
+        return response()->json([
+            'message' => 'Passwort erfolgreich geändert.',
         ]);
     }
 }
