@@ -11,8 +11,7 @@ if (env('APP_ENV') == 'local') {
 } else {
     // Live / production
     $allowedOrigins = [
-        'http://zimaboard.zmwl.local',
-        'http://localhost:8081',
+        'https://zimaboard.zmwl.local',
     ];
 }
 
